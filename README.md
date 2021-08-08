@@ -1,2 +1,2 @@
 # yarn-remapper
-A simple tool to remap java source files containing intermediary yarn mappings.
+A simple tool to remap compiled Fabric mods containing intermediary yarn mapping names.
