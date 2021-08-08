@@ -22,9 +22,9 @@ import java.nio.file.StandardCopyOption;
 import java.util.*;
 
 public class Main {
-    private static final File DIR = new File(System.getProperty("user.home"), ".yarn-remapper");
+    public static final File DIR = new File(System.getProperty("user.home"), ".yarn-remapper");
 
-    private static Map<String, String> MAPPINGS;
+    public static Map<String, String> MAPPINGS;
 
     public static void main(String[] args) throws IOException, URISyntaxException, InterruptedException {
         // Read input info
@@ -52,7 +52,7 @@ public class Main {
         if (mcVersionFolder.exists()) {
             int latestBuild = 0;
 
-            for (File file : mcVersionFolder.listFiles()) {
+            for (File file : Objects.requireNonNull(mcVersionFolder.listFiles())) {
                 if (file.getName().endsWith(".tiny")) {
                     int build = Integer.parseInt(file.getName().substring(0, 1));
 
@@ -63,7 +63,7 @@ public class Main {
             if (latestBuild > latestYarnBuild) latestYarnBuild = latestBuild;
         }
 
-        fetchLatestMappings(mcVersion, latestYarnBuild);
+        cacheMappings(mcVersion, latestYarnBuild);
 
         File mappingsFile = new File(mcVersionFolder, latestYarnBuild + ".tiny");
         if (!mappingsFile.exists()) {
@@ -84,7 +84,10 @@ public class Main {
 
         InputStream res = HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofInputStream()).body();
 
-        List<YarnVersion> versions = new Gson().fromJson(new InputStreamReader(res), new TypeToken<List<YarnVersion>>(){}.getType());
+        List<YarnVersion> versions = new Gson().fromJson(
+                new InputStreamReader(res),
+                new TypeToken<List<YarnVersion>>(){}.getType()
+        );
 
         versions.sort(Comparator.comparingInt(version -> version.build));
         Collections.reverse(versions);
@@ -93,9 +96,10 @@ public class Main {
         else return 0;
     }
 
-    public static void fetchLatestMappings(String mcVersion, int yarnBuild) throws IOException {
+    public static void cacheMappings(String mcVersion, int yarnBuild) throws IOException {
         File mcVersionFolder = new File(DIR, mcVersion);
 
+        // Delete past cache because there is a newer version available
         if (mcVersionFolder.exists()) FileUtils.cleanDirectory(mcVersionFolder);
         else mcVersionFolder.mkdir();
 
@@ -129,6 +133,7 @@ public class Main {
         } catch (IOException e) {
             System.out.println("Failed");
             System.exit(0);
+            return;
         }
 
         jarFile.delete();
