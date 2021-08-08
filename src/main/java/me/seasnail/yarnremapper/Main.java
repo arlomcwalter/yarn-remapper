@@ -2,23 +2,13 @@ package me.seasnail.yarnremapper;
 
 import com.google.common.reflect.TypeToken;
 import com.google.gson.Gson;
-import net.fabricmc.mapping.reader.v2.MappingGetter;
-import net.fabricmc.mapping.reader.v2.TinyMetadata;
-import net.fabricmc.mapping.reader.v2.TinyV2Factory;
-import net.fabricmc.mapping.reader.v2.TinyVisitor;
+import net.fabricmc.mapping.reader.v2.*;
 import org.apache.commons.io.FileUtils;
 
 import java.io.*;
-import java.net.URI;
-import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.file.FileSystem;
-import java.nio.file.FileSystems;
-import java.nio.file.Files;
-import java.nio.file.StandardCopyOption;
+import java.net.*;
+import java.net.http.*;
+import java.nio.file.*;
 import java.util.*;
 
 public class Main {
