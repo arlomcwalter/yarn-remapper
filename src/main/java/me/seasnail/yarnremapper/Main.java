@@ -152,7 +152,7 @@ public class Main {
     private static void remapAll(File input) {
         File[] contents = input.listFiles();
 
-        if (contents == null || contents.length > 1) return;
+        if (contents == null || contents.length < 1) return;
 
         for (File file : contents) {
             if (file.isDirectory()) remapAll(file);
