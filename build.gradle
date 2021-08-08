@@ -1,0 +1,42 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '7.0.0'
+}
+
+sourceCompatibility = targetCompatibility = JavaVersion.VERSION_16
+
+repositories {
+    mavenCentral()
+    maven {
+        name = "Fabric MC"
+        url = "https://maven.fabricmc.net/"
+    }
+}
+
+dependencies {
+    implementation 'com.google.code.gson:gson:2.8.7'
+    implementation 'com.google.guava:guava:30.1.1-jre'
+    implementation 'org.apache.commons:commons-io:1.3.2'
+    implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"
+}
+
+tasks.withType(JavaCompile).configureEach {
+    it.options.encoding = "UTF-8"
+    it.options.release = 16
+}
+
+jar {
+    enabled = false
+    dependsOn shadowJar
+}
+
+shadowJar {
+    configurations = [project.configurations.compileClasspath]
+
+    manifest {
+        attributes("Main-Class": "me.seasnail.yarnremapper.Main")
+    }
+
+    classifier = null
+}
+
