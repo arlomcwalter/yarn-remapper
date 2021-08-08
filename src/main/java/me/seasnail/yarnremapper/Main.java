@@ -86,7 +86,7 @@ public class Main {
 
         List<YarnVersion> versions = new Gson().fromJson(
                 new InputStreamReader(res),
-                new TypeToken<List<YarnVersion>>(){}.getType()
+                new TypeToken<List<YarnVersion>>() {}.getType()
         );
 
         versions.sort(Comparator.comparingInt(version -> version.build));
