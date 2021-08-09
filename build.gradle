@@ -5,6 +5,9 @@ plugins {
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_16
 
+group = 'me.seasnail'
+archivesBaseName = 'yarn-remapper'
+
 repositories {
     mavenCentral()
     maven {
@@ -17,7 +20,7 @@ dependencies {
     implementation 'com.google.code.gson:gson:2.8.7'
     implementation 'com.google.guava:guava:30.1.1-jre'
     implementation 'org.apache.commons:commons-io:1.3.2'
-    implementation "net.fabricmc:tiny-mappings-parser:0.3.0+build.17"
+    implementation "net.fabricmc:tiny-remapper:0.5.0"
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -31,7 +34,7 @@ jar {
 }
 
 shadowJar {
-    configurations = [project.configurations.compileClasspath]
+    configurations = [ project.configurations.compileClasspath ]
 
     manifest {
         attributes("Main-Class": "me.seasnail.yarnremapper.Main")
