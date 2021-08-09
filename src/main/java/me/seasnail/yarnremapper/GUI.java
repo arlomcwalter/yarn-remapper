@@ -22,8 +22,8 @@ public class GUI extends JFrame {
     public GUI() {
         setTitle("Yarn Remapper");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setMinimumSize(new Dimension(600, 300));
-        setSize(600, 300);
+        setSize(650, 300);
+        setMinimumSize(new Dimension(650, 300));
         setResizable(false);
 
         content = new JPanel();
