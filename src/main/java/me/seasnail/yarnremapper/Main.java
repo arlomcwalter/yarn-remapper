@@ -151,7 +151,7 @@ public class Main {
             return;
         }
 
-        long startTime = System.nanoTime();
+        if (!gui.progressBarVisible) gui.content.add(gui.progressPanel());
 
         File mcVersionFolder = new File(Main.CACHE_DIR, mcVersion);
         String yarnVersion = mcVersion + "+build." + yarnBuild;
@@ -161,7 +161,8 @@ public class Main {
         File mappingsFile = new File(mcVersionFolder, yarnBuild + ".tiny");
         if (!mappingsFile.exists()) {
             // Download yarn mappings
-            System.out.printf("Downloading Yarn mappings for Minecraft %s (Build %d)...", mcVersion, yarnBuild);
+            gui.progressBar.setValue(0);
+            gui.progressLabel.setText(String.format("Downloading Yarn mappings for Minecraft %s (Build %d)...", mcVersion, yarnBuild));
 
             File jarFile = new File(mcVersionFolder, "yarn.jar");
             if (jarFile.exists()) jarFile.delete();
@@ -170,21 +171,26 @@ public class Main {
 
             try {
                 FileUtils.copyURLToFile(new URL("https://maven.fabricmc.net/net/fabricmc/yarn/" + yarnVersion + "/yarn-" + yarnVersion + "-v2.jar"), jarFile);
-                System.out.println("Complete.");
+                gui.progressLabel.setText("Complete");
+                gui.progressBar.setValue(100);
             } catch (IOException e) {
-                System.out.println("Failed.");
+                gui.progressLabel.setText("Failed.");
+                gui.progressBar.setValue(50);
                 System.exit(0);
                 return;
             }
 
             // Extract mappings from jar
-            System.out.print("Extracting tiny mappings from Yarn jar...");
+            gui.progressBar.setValue(0);
+            gui.progressLabel.setText("Extracting tiny mappings from Yarn jar...");
 
             try (FileSystem jar = FileSystems.newFileSystem(jarFile.toPath(), (ClassLoader) null)) {
                 Files.copy(jar.getPath("mappings/mappings.tiny"), mappingsFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                System.out.println("Complete.");
+                gui.progressLabel.setText("Complete.");
+                gui.progressBar.setValue(100);
             } catch (IOException e) {
-                System.out.println("Failed");
+                gui.progressLabel.setText("Failed");
+                gui.progressBar.setValue(50);
                 System.exit(0);
                 return;
             }
@@ -196,6 +202,9 @@ public class Main {
             JOptionPane.showMessageDialog(gui, "Please check the versions you have selected are correct.", "Error fetching mappings!", JOptionPane.ERROR_MESSAGE);
             return;
         }
+
+        gui.progressBar.setValue(0);
+        gui.progressLabel.setText(String.format("Remapping %s with %s (Build %d) mappings...", input.getName(), mcVersion, yarnBuild));
 
         TinyRemapper remapper = TinyRemapper.newRemapper()
             .withMappings(TinyUtils.createTinyMappingProvider(mappingsFile.toPath(), "intermediary", "named"))
@@ -212,9 +221,10 @@ public class Main {
             throw new RuntimeException(e);
         } finally {
             remapper.finish();
+            gui.progressBar.setValue(100);
+            gui.progressLabel.setText("Complete");
         }
     }
-
 
     public static class MinecraftVersion {
         public String version;

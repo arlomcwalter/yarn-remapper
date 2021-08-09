@@ -1,7 +1,6 @@
 package me.seasnail.yarnremapper;
 
 import javax.swing.*;
-import java.awt.*;
 
 public class GUI extends JFrame {
     public JPanel content;
@@ -19,11 +18,14 @@ public class GUI extends JFrame {
 
     public JButton remapButton;
 
+    public JLabel progressLabel;
+    public JProgressBar progressBar;
+    public boolean progressBarVisible = false;
+
     public GUI() {
         setTitle("Yarn Remapper");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(650, 300);
-        setMinimumSize(new Dimension(650, 300));
         setResizable(false);
 
         content = new JPanel();
@@ -229,5 +231,38 @@ public class GUI extends JFrame {
         remapPanel.setLayout(remapLayout);
 
         return remapPanel;
+    }
+
+    public JPanel progressPanel() {
+        progressBarVisible = true;
+
+        JPanel progressPanel = new JPanel();
+
+        progressLabel = new JLabel("", SwingConstants.CENTER);
+        progressBar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
+        progressBar.setSize(500, 0);
+
+        setSize(650, 320);
+
+        GroupLayout progressLayout = new GroupLayout(progressPanel);
+
+        progressLayout.setHorizontalGroup(
+            progressLayout.createSequentialGroup()
+                .addGap(20)
+                .addComponent(progressLabel)
+                .addGap(10)
+                .addComponent(progressBar)
+                .addGap(20)
+        );
+
+        progressLayout.setVerticalGroup(
+            progressLayout.createParallelGroup()
+                .addComponent(progressLabel)
+                .addComponent(progressBar)
+        );
+
+        progressPanel.setLayout(progressLayout);
+
+        return progressPanel;
     }
 }
