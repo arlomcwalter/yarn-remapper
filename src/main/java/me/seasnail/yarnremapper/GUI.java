@@ -1,28 +1,50 @@
 package me.seasnail.yarnremapper;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.util.tinyfd.TinyFileDialogs;
+
 import javax.swing.*;
+import java.awt.*;
+import java.awt.datatransfer.DataFlavor;
+import java.awt.datatransfer.UnsupportedFlavorException;
+import java.awt.dnd.DnDConstants;
+import java.awt.dnd.DropTarget;
+import java.awt.dnd.DropTargetDropEvent;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.function.BiConsumer;
 
 public class GUI extends JFrame {
-    public JPanel content;
-
+    public JLabel inputLabel;
     public JTextField inputPath;
     public JButton inputBrowse;
 
+    public JLabel outputLabel;
     public JTextField outputPath;
     public JButton outputBrowse;
 
-    public JComboBox<String> mcVersionSelector;
-    public JCheckBox mcVersionSnapshots;
+    public JLabel minecraftVersionLabel;
+    public JComboBox<String> minecraftVersionSelector;
+    public JCheckBox minecraftVersionSnapshots;
 
+    public JLabel yarnVersionLabel;
     public JComboBox<String> yarnVersionSelector;
 
     public JButton remapButton;
 
-    public JLabel progressLabel;
-    public JProgressBar progressBar;
-    public boolean progressBarVisible = false;
-
-    public GUI() {
+    public GUI() throws URISyntaxException, IOException, InterruptedException, UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
         try {
             UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
         } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
@@ -30,245 +52,277 @@ public class GUI extends JFrame {
         }
 
         setTitle("Yarn Remapper");
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(650, 300);
+        setBackground(Color.white);
+        setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
 
-        content = new JPanel();
-        setContentPane(content);
+        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
-        content.add(inputPanel());
-        content.add(outputPanel());
-        content.add(minecraftPanel());
-        content.add(yarnPanel());
-        content.add(remapPanel());
-    }
+        // Input
+        inputLabel = new JLabel("Input");
+        inputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-    public JPanel inputPanel() {
-        JPanel inputPanel = new JPanel();
-
-        // Components
-        JLabel inputLabel = new JLabel("Input JAR:", SwingConstants.CENTER);
         inputPath = new JTextField();
+        inputPath.setDropTarget(new JarDropTarget(inputPath, (textField, file) -> textField.setText(file.getAbsolutePath())));
+
         inputBrowse = new JButton("Browse");
+        inputBrowse.addActionListener(e -> {
+            // Create filter
+            ByteBuffer jarFilter = MemoryUtil.memASCII("*.jar");
 
-        // Layout
-        GroupLayout inputLayout = new GroupLayout(inputPanel);
+            PointerBuffer filters = MemoryUtil.memAllocPointer(1);
+            filters.put(jarFilter);
+            filters.rewind();
 
-        inputLayout.setHorizontalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGap(Short.MAX_VALUE)
-                    .addGroup(inputLayout.createParallelGroup()
-                        .addGroup(inputLayout.createSequentialGroup()
-                            .addComponent(inputLabel)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(inputPath, 400, 400, 400)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(inputBrowse)
-                        )
-                    )
-                    .addGap(Short.MAX_VALUE)
-                )
-        );
+            // Open dialog
+            String path = !inputPath.getText().equals("") ? inputPath.getText() : System.getProperty("user.home") + "/Desktop";
+            String result = TinyFileDialogs.tinyfd_openFileDialog("Select input jar", path, filters, "JARs", false);
 
-        inputLayout.setVerticalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGap(28)
-                    .addGroup(inputLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                        .addComponent(inputLabel)
-                        .addComponent(inputPath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(inputBrowse)
-                    )
-                )
-        );
+            if (result != null) {
+                if (result.endsWith(".jar")) {
+                    inputPath.setText(result);
+                    outputPath.setText(result.replace(".jar", "-remapped.jar"));
+                } else {
+                    TinyFileDialogs.tinyfd_messageBox("Error selecting input jar!", "Please select a valid JAR file.", "ok", "error", false);
+                }
+            }
 
-        inputPanel.setLayout(inputLayout);
+            // Free filter
+            MemoryUtil.memFree(filters);
+            MemoryUtil.memFree(jarFilter);
+        });
 
-        return inputPanel;
-    }
+        // Output
+        outputLabel = new JLabel("Output");
+        outputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-    public JPanel outputPanel() {
-        JPanel outputPanel = new JPanel();
-
-        JLabel outputLabel = new JLabel("Output Dir:", SwingConstants.CENTER);
         outputPath = new JTextField();
+        outputPath.setDropTarget(new JarDropTarget(outputPath, (textField, file) -> textField.setText(file.getAbsolutePath())));
+
         outputBrowse = new JButton("Browse");
+        outputBrowse.addActionListener(e -> {
+            // Create filter
+            ByteBuffer jarFilter = MemoryUtil.memASCII("*.jar");
 
-        GroupLayout inputLayout = new GroupLayout(outputPanel);
+            PointerBuffer filters = MemoryUtil.memAllocPointer(1);
+            filters.put(jarFilter);
+            filters.rewind();
 
-        inputLayout.setHorizontalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGap(Short.MAX_VALUE)
-                    .addGroup(inputLayout.createParallelGroup()
-                        .addGroup(inputLayout.createSequentialGroup()
-                            .addComponent(outputLabel)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(outputPath, 400, 400, 400)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(outputBrowse)
-                        )
-                    )
-                    .addGap(Short.MAX_VALUE)
-                )
-        );
+            String path = !outputPath.getText().equals("") ? outputPath.getText() : System.getProperty("user.home") + "/Desktop";
+            String result = TinyFileDialogs.tinyfd_saveFileDialog("Save output JAR", path, filters, "JARs");
 
-        inputLayout.setVerticalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGroup(inputLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                        .addComponent(outputLabel)
-                        .addComponent(outputPath, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(outputBrowse)
-                    )
-                    .addGap(20)
-                )
-        );
+            if (result != null) {
+                if (result.endsWith(".jar")) outputPath.setText(result);
+                else outputPath.setText(result + ".jar");
+            }
 
-        outputPanel.setLayout(inputLayout);
+            // Free filter
+            MemoryUtil.memFree(filters);
+            MemoryUtil.memFree(jarFilter);
+        });
 
-        return outputPanel;
-    }
+        // Version Selectors
+        minecraftVersionLabel = new JLabel("Minecraft Version");
+        minecraftVersionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-    public JPanel minecraftPanel() {
-        JPanel minecraftPanel = new JPanel();
+        minecraftVersionSelector = new JComboBox();
 
-        // Components
-        JLabel mcVersionLabel = new JLabel("Minecraft Version:", SwingConstants.CENTER);
-        mcVersionSelector = new JComboBox<>();
-        mcVersionSnapshots = new JCheckBox("Snapshots");
+        minecraftVersionSnapshots = new JCheckBox("Snapshots");
 
-        // Layout
-        GroupLayout inputLayout = new GroupLayout(minecraftPanel);
+        yarnVersionLabel = new JLabel("Yarn Version");
+        yarnVersionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        inputLayout.setHorizontalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGap(Short.MAX_VALUE)
-                    .addGroup(inputLayout.createParallelGroup()
-                        .addGroup(inputLayout.createSequentialGroup()
-                            .addComponent(mcVersionLabel)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(mcVersionSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(mcVersionSnapshots)
-                        )
-                    )
-                    .addGap(Short.MAX_VALUE)
-                )
-        );
+        yarnVersionSelector = new JComboBox();
 
-        inputLayout.setVerticalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGroup(inputLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                        .addComponent(mcVersionLabel)
-                        .addComponent(mcVersionSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                        .addComponent(mcVersionSnapshots)
-                    )
-                )
-        );
+        MinecraftVersion.populate(minecraftVersionSelector, minecraftVersionSnapshots.isSelected(), yarnVersionSelector);
 
-        minecraftPanel.setLayout(inputLayout);
+        minecraftVersionSelector.addActionListener(e -> {
+            try {
+                yarnVersionSelector.removeAllItems();
+                YarnVersion.populate(yarnVersionSelector, (String) minecraftVersionSelector.getSelectedItem());
+            } catch (URISyntaxException | IOException | InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        });
 
-        return minecraftPanel;
-    }
+        minecraftVersionSnapshots.addActionListener(e -> {
+            try {
+                minecraftVersionSelector.removeAllItems();
+                MinecraftVersion.populate(minecraftVersionSelector, minecraftVersionSnapshots.isSelected(), yarnVersionSelector);
+            } catch (URISyntaxException | IOException | InterruptedException ex) {
+                ex.printStackTrace();
+            }
+        });
 
-    public JPanel yarnPanel() {
-        JPanel yarnPanel = new JPanel();
-
-        // Components
-        JLabel yarnVersionLabel = new JLabel("Yarn Version:", SwingConstants.CENTER);
-        yarnVersionSelector = new JComboBox<>();
-
-        // Layout
-        GroupLayout inputLayout = new GroupLayout(yarnPanel);
-
-        inputLayout.setHorizontalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGap(Short.MAX_VALUE)
-                    .addGroup(inputLayout.createParallelGroup()
-                        .addGroup(inputLayout.createSequentialGroup()
-                            .addComponent(yarnVersionLabel)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(yarnVersionSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                            .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
-                        )
-                    )
-                    .addGap(Short.MAX_VALUE)
-                )
-        );
-
-        inputLayout.setVerticalGroup(
-            inputLayout.createParallelGroup()
-                .addGroup(inputLayout.createSequentialGroup()
-                    .addGroup(inputLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
-                        .addComponent(yarnVersionLabel)
-                        .addComponent(yarnVersionSelector, GroupLayout.PREFERRED_SIZE, GroupLayout.DEFAULT_SIZE, GroupLayout.PREFERRED_SIZE)
-                    )
-                    .addGap(20)
-                )
-        );
-
-        yarnPanel.setLayout(inputLayout);
-
-        return yarnPanel;
-    }
-
-    public JPanel remapPanel() {
-        JPanel remapPanel = new JPanel();
-
+        // Remap Button
         remapButton = new JButton("Remap");
+        remapButton.addActionListener(e -> {
+            try {
+                Main.remap(
+                    new File(inputPath.getText()),
+                    new File(outputPath.getText()),
+                    (String) minecraftVersionSelector.getSelectedItem(),
+                    Integer.parseInt(((String) yarnVersionSelector.getSelectedItem()).substring(6)),
+                    false
+                );
+            } catch (IOException | InterruptedException | URISyntaxException ex) {
+                ex.printStackTrace();
+            }
+        });
 
-        GroupLayout remapLayout = new GroupLayout(remapPanel);
+        GroupLayout contentPaneLayout = new GroupLayout(getContentPane());
+        getContentPane().setLayout(contentPaneLayout);
 
-        remapLayout.setHorizontalGroup(
-            remapLayout.createSequentialGroup()
-                .addGap(Short.MAX_VALUE)
-                .addComponent(remapButton)
-                .addGap(Short.MAX_VALUE)
+        contentPaneLayout.setHorizontalGroup(
+            contentPaneLayout.createParallelGroup()
+                .addGroup(
+                    contentPaneLayout.createSequentialGroup()
+                        .addGap(30, 30, 30)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(inputLabel, 50, 50, 50)
+                            .addComponent(outputLabel, 50, 50, 50))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(outputPath, 350, 350, 350)
+                            .addComponent(inputPath, 350, 350, 350))
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(inputBrowse)
+                            .addComponent(outputBrowse))
+                        .addGap(30, 30, 30)
+                )
+                .addGroup(
+                    contentPaneLayout.createSequentialGroup()
+                        .addGap(70, 70, 70)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(minecraftVersionLabel, 150, 150, 150)
+                            .addComponent(yarnVersionLabel, 150, 150, 150)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(minecraftVersionSelector, 130, 130, 130)
+                            .addComponent(yarnVersionSelector, 130, 130, 130)
+                            .addComponent(remapButton, 130, 130, 130)
+                        )
+                        .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                        .addGroup(contentPaneLayout.createParallelGroup()
+                            .addComponent(minecraftVersionSnapshots)
+                        )
+                )
         );
 
-        remapLayout.setVerticalGroup(remapLayout.createParallelGroup().addComponent(remapButton));
+        contentPaneLayout.setVerticalGroup(
+            contentPaneLayout.createParallelGroup()
+                .addGroup(contentPaneLayout.createSequentialGroup()
+                    .addGap(20, 20, 20)
+                    .addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(inputLabel)
+                        .addComponent(inputPath)
+                        .addComponent(inputBrowse))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(outputLabel)
+                        .addComponent(outputPath)
+                        .addComponent(outputBrowse))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(minecraftVersionLabel)
+                        .addComponent(minecraftVersionSelector)
+                        .addComponent(minecraftVersionSnapshots))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.RELATED)
+                    .addGroup(contentPaneLayout.createParallelGroup(GroupLayout.Alignment.BASELINE)
+                        .addComponent(yarnVersionSelector)
+                        .addComponent(yarnVersionLabel))
+                    .addPreferredGap(LayoutStyle.ComponentPlacement.UNRELATED)
+                    .addComponent(remapButton, 50, 50, 50)
+                    .addContainerGap(20, 20)
+                )
+        );
 
-        remapPanel.setLayout(remapLayout);
-
-        return remapPanel;
+        pack();
+        setLocationRelativeTo(getOwner());
+        setVisible(true);
     }
 
-    public JPanel progressPanel() {
-        progressBarVisible = true;
+    public static class MinecraftVersion {
+        public String version;
+        public boolean stable;
 
-        JPanel progressPanel = new JPanel();
+        public static void populate(JComboBox<String> mcSelector, boolean snapshots, JComboBox<String> yarnSelector) throws URISyntaxException, IOException, InterruptedException {
+            HttpRequest.Builder request = HttpRequest.newBuilder()
+                .uri(new URI("https://meta.fabricmc.net/v2/versions/game/"))
+                .method("GET", HttpRequest.BodyPublishers.noBody())
+                .header("Accept", "application/json");
 
-        progressLabel = new JLabel("", SwingConstants.CENTER);
-        progressBar = new JProgressBar(SwingConstants.HORIZONTAL, 0, 100);
-        progressBar.setSize(500, 0);
+            InputStream res = HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofInputStream()).body();
 
-        setSize(650, 320);
+            List<MinecraftVersion> versions = new Gson().fromJson(
+                new InputStreamReader(res),
+                new TypeToken<List<MinecraftVersion>>() {
+                }.getType()
+            );
 
-        GroupLayout progressLayout = new GroupLayout(progressPanel);
+            for (MinecraftVersion version : versions) {
+                if (version.stable || snapshots) mcSelector.addItem(version.version);
+            }
 
-        progressLayout.setHorizontalGroup(
-            progressLayout.createSequentialGroup()
-                .addGap(20)
-                .addComponent(progressLabel)
-                .addGap(10)
-                .addComponent(progressBar)
-                .addGap(20)
-        );
+            YarnVersion.populate(yarnSelector, (String) mcSelector.getSelectedItem());
+        }
+    }
 
-        progressLayout.setVerticalGroup(
-            progressLayout.createParallelGroup()
-                .addComponent(progressLabel)
-                .addComponent(progressBar)
-        );
+    public static class YarnVersion {
+        public int build;
 
-        progressPanel.setLayout(progressLayout);
+        public static void populate(JComboBox<String> dropDown, String mcVersion) throws URISyntaxException, IOException, InterruptedException {
+            HttpRequest.Builder request = HttpRequest.newBuilder()
+                .uri(new URI("https://meta.fabricmc.net/v2/versions/yarn/" + mcVersion))
+                .method("GET", HttpRequest.BodyPublishers.noBody())
+                .header("Accept", "application/json");
 
-        return progressPanel;
+            InputStream res = HttpClient.newHttpClient().send(request.build(), HttpResponse.BodyHandlers.ofInputStream()).body();
+
+            List<YarnVersion> versions = new Gson().fromJson(
+                new InputStreamReader(res),
+                new TypeToken<List<YarnVersion>>() {
+                }.getType()
+            );
+
+            for (YarnVersion version : versions) {
+                dropDown.addItem("build-" + version.build);
+            }
+        }
+    }
+
+    public static class JarDropTarget extends DropTarget {
+        private final JTextField compnent;
+        private final BiConsumer<JTextField, File> action;
+
+        public JarDropTarget(JTextField compnent, BiConsumer<JTextField, File> action) {
+            this.compnent = compnent;
+            this.action = action;
+        }
+
+        @Override
+        public synchronized void drop(DropTargetDropEvent event) {
+            event.acceptDrop(DnDConstants.ACTION_REFERENCE);
+            java.util.List<File> files = null;
+            try {
+                files = (List<File>) event.getTransferable().getTransferData(DataFlavor.javaFileListFlavor);
+            } catch (UnsupportedFlavorException | IOException e) {
+                e.printStackTrace();
+            }
+
+            if (files == null || files.size() != 1) {
+                TinyFileDialogs.tinyfd_messageBox("Error selecting input JAR!", "Please drop a valid JAR file.", "ok", "error", false);
+                return;
+            }
+
+            File file = files.get(0);
+
+            if (file.getName().endsWith(".jar")) action.accept(compnent, file);
+            else {
+                TinyFileDialogs.tinyfd_messageBox("Error selecting input JAR!", "Please drop a valid JAR file.", "ok", "error", false);
+            }
+        }
     }
 }
