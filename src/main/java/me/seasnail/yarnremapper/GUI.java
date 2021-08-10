@@ -288,7 +288,7 @@ public class GUI extends JFrame {
             );
 
             for (YarnVersion version : versions) {
-                dropDown.addItem("build-" + version.build);
+                dropDown.addItem("Build " + version.build);
             }
         }
     }
