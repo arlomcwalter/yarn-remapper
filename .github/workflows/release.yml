@@ -1,6 +1,7 @@
 name: Release
-on:
-  - push
+
+on: push
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -22,5 +23,4 @@ jobs:
           repo_token: '${{ secrets.GITHUB_TOKEN }}'
           automatic_release_tag: latest
           prerelease: false
-          title: Dev Build
           files: build/libs/yarn-remapper.jar
