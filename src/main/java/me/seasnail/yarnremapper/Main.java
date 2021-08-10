@@ -5,9 +5,11 @@ import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
 import net.fabricmc.tinyremapper.TinyUtils;
 import org.apache.commons.io.FileUtils;
+import org.lwjgl.PointerBuffer;
+import org.lwjgl.system.MemoryUtil;
+import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 import javax.swing.*;
-import javax.swing.filechooser.FileFilter;
 import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
@@ -18,6 +20,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
@@ -36,65 +39,37 @@ public class Main {
         gui.inputPath.setDropTarget(new JarDropTarget(gui, file -> gui.inputPath.setText(file.getAbsolutePath())));
 
         gui.inputBrowse.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
+            // Create filter
+            ByteBuffer pngFilter = MemoryUtil.memASCII("*.jar");
 
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home") + "/Desktop"));
-            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
-            fileChooser.setAcceptAllFileFilterUsed(false);
+            PointerBuffer filters = MemoryUtil.memAllocPointer(1);
+            filters.put(pngFilter);
+            filters.rewind();
 
-            fileChooser.setFileFilter(new FileFilter() {
-                @Override
-                public boolean accept(File f) {
-                    return f.exists() && (f.isDirectory() || (f.isFile() && f.getName().endsWith(".jar")));
-                }
+            // Open dialog
+            String result = TinyFileDialogs.tinyfd_openFileDialog("Select input jar", System.getProperty("user.home") + "/Desktop", filters, "JARs", false);
 
-                @Override
-                public String getDescription() {
-                    return "JARs";
-                }
-            });
-
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-
-                if (selectedFile.getName().endsWith(".jar")) {
-                    gui.inputPath.setText(fileChooser.getSelectedFile().getAbsolutePath());
+            if (result != null) {
+                if (result.endsWith(".jar")) {
+                    gui.inputPath.setText(result);
                 } else {
-                    JOptionPane.showMessageDialog(fileChooser, "Please select a valid JAR file.", "Error selecting input file!", JOptionPane.ERROR_MESSAGE);
+                    TinyFileDialogs.tinyfd_messageBox("Error selecting input jar!", "Please select a valid JAR file.", "ok", "error", false);
                 }
             }
+
+            // Free filter
+            MemoryUtil.memFree(filters);
+            MemoryUtil.memFree(pngFilter);
         });
 
         // Output
         gui.outputPath.setDropTarget(new JarDropTarget(gui, file -> gui.outputPath.setText(file.getAbsolutePath())));
 
         gui.outputBrowse.addActionListener(e -> {
-            JFileChooser fileChooser = new JFileChooser();
+            String result = TinyFileDialogs.tinyfd_selectFolderDialog("Select output folder", System.getProperty("user.home") + "/Desktop");
 
-            fileChooser.setCurrentDirectory(new File(System.getProperty("user.home") + "/Desktop"));
-            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
-            fileChooser.setAcceptAllFileFilterUsed(false);
-
-            fileChooser.setFileFilter(new FileFilter() {
-                @Override
-                public boolean accept(File file) {
-                    return file.isDirectory();
-                }
-
-                @Override
-                public String getDescription() {
-                    return "Directory";
-                }
-            });
-
-            if (fileChooser.showOpenDialog(null) == JFileChooser.APPROVE_OPTION) {
-                File selectedFile = fileChooser.getSelectedFile();
-
-                if (selectedFile.isDirectory()) {
-                    gui.outputPath.setText(fileChooser.getSelectedFile().getAbsolutePath());
-                } else {
-                    JOptionPane.showMessageDialog(fileChooser, "Please select a valid output directory.", "Error selecting output directory!", JOptionPane.ERROR_MESSAGE);
-                }
+            if (result != null) {
+                gui.outputPath.setText(result);
             }
         });
 

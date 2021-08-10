@@ -23,6 +23,12 @@ public class GUI extends JFrame {
     public boolean progressBarVisible = false;
 
     public GUI() {
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+            e.printStackTrace();
+        }
+
         setTitle("Yarn Remapper");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setSize(650, 300);

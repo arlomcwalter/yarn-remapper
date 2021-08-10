@@ -1,12 +1,13 @@
 plugins {
-    id 'java'
-    id 'com.github.johnrengelman.shadow' version '7.0.0'
+    id "java"
+    id "application"
 }
 
 sourceCompatibility = targetCompatibility = JavaVersion.VERSION_16
 
-group = 'me.seasnail'
-archivesBaseName = 'yarn-remapper'
+group = "me.seasnail"
+archivesBaseName = "yarn-remapper"
+mainClassName = "me.seasnail.yarnremapper.Main"
 
 repositories {
     mavenCentral()
@@ -17,10 +18,21 @@ repositories {
 }
 
 dependencies {
-    implementation 'com.google.code.gson:gson:2.8.7'
-    implementation 'com.google.guava:guava:30.1.1-jre'
-    implementation 'org.apache.commons:commons-io:1.3.2'
+    implementation "com.google.code.gson:gson:2.8.7"
+    implementation "com.google.guava:guava:30.1.1-jre"
+    implementation "org.apache.commons:commons-io:1.3.2"
     implementation "net.fabricmc:tiny-remapper:0.5.0"
+
+    // LWJGL - Tiny File Dialogs
+    implementation platform("org.lwjgl:lwjgl-bom:3.2.3")
+
+    implementation "org.lwjgl:lwjgl"
+    implementation "org.lwjgl:lwjgl-tinyfd"
+
+    ["natives-windows", "natives-linux", "natives-macos"].forEach {
+        runtimeOnly "org.lwjgl:lwjgl::$it"
+        runtimeOnly "org.lwjgl:lwjgl-tinyfd::$it"
+    }
 }
 
 tasks.withType(JavaCompile).configureEach {
@@ -29,17 +41,11 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 jar {
-    enabled = false
-    dependsOn shadowJar
-}
-
-shadowJar {
-    configurations = [ project.configurations.compileClasspath ]
-
     manifest {
-        attributes("Main-Class": "me.seasnail.yarnremapper.Main")
+        attributes "Main-Class": mainClassName
     }
 
-    classifier = null
+    from {
+        configurations.runtimeClasspath.collect { it.isDirectory() ? it : zipTree(it) }
+    }
 }
-
