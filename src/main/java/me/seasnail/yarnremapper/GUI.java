@@ -49,13 +49,20 @@ public class GUI extends JFrame {
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
 
+        // Icon
         Image image = Toolkit.getDefaultToolkit().getImage(Main.class.getClassLoader().getResource("logo.png"));
 
-        // MacOs
-        Taskbar.getTaskbar().setIconImage(image);
+        if (System.getProperty("os.name").contains("Mac")) Taskbar.getTaskbar().setIconImage(image);
+        else setIconImage(image);
 
-        // Windows
-        setIconImage(image);
+        // Menu bar
+        JMenuBar menuBar = new JMenuBar();
+        JMenu themeMenu = new JMenu("Theme");
+
+        for (Theme theme : Main.THEMES) themeMenu.add(theme.createMenuItem());
+
+        menuBar.add(themeMenu);
+        setJMenuBar(menuBar);
 
         // Input
         inputLabel = new JLabel("Input");
@@ -244,6 +251,17 @@ public class GUI extends JFrame {
         pack();
         setLocationRelativeTo(getOwner());
         setVisible(true);
+    }
+
+    private JMenuItem createThemeMenuItem(String name, Runnable runnable) {
+        JMenuItem item = new JMenuItem(name);
+
+        item.addActionListener(e -> {
+            runnable.run();
+            SwingUtilities.updateComponentTreeUI(this);
+        });
+
+        return item;
     }
 
     public static class MinecraftVersion {

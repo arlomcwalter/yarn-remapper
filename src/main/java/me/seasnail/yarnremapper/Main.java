@@ -1,6 +1,7 @@
 package me.seasnail.yarnremapper;
 
 import com.formdev.flatlaf.FlatDarculaLaf;
+import com.formdev.flatlaf.FlatIntelliJLaf;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
@@ -8,7 +9,10 @@ import net.fabricmc.tinyremapper.TinyUtils;
 import org.apache.commons.io.FileUtils;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
+import javax.swing.*;
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.net.URL;
@@ -16,14 +20,41 @@ import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
+import java.util.Properties;
 
 public class Main {
     public static final File CACHE_DIR = new File(System.getProperty("user.home"), ".yarn-remapper");
+    public static final File CONFIG_FILE = new File(CACHE_DIR, "config.properties");
+
     public static GUI gui;
+
+    public static final Theme[] THEMES = {
+        new Theme("system", "System", () -> {
+            try {
+                UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+            } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
+                e.printStackTrace();
+            }
+        }),
+        new Theme("intellij-light", "Intellij Light", FlatIntelliJLaf::setup),
+        new Theme("intellij-dark", "Intellij Dark", FlatDarculaLaf::setup)
+    };
 
     public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException {
         System.setProperty("apple.awt.application.name", "Yarn Remapper");
-        FlatDarculaLaf.setup();
+
+        if (CONFIG_FILE.exists()) {
+            Properties properties = new Properties();
+            properties.load(new FileReader(CONFIG_FILE));
+
+            Theme theme = getTheme(properties.getProperty("theme"));
+            if (theme == null) FlatDarculaLaf.setup();
+            else theme.apply();
+        }
+        else {
+            FlatDarculaLaf.setup();
+        }
+
         gui = new GUI();
     }
 
@@ -101,6 +132,25 @@ public class Main {
             remapper.finish();
             System.out.println("complete!");
             if (!headless) TinyFileDialogs.tinyfd_messageBox("Complete!", "Successfully remapped JAR.", "ok", "info", false);
+        }
+    }
+
+    public static Theme getTheme(String name) {
+        for (Theme theme : THEMES) {
+            if (theme.name.equals(name)) return theme;
+        }
+
+        return null;
+    }
+
+    public static void saveConfig(Theme theme) {
+        Properties properties = new Properties();
+        properties.put("theme", theme.name);
+
+        try {
+            properties.store(new FileWriter(CONFIG_FILE), null);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
