@@ -253,17 +253,6 @@ public class GUI extends JFrame {
         setVisible(true);
     }
 
-    private JMenuItem createThemeMenuItem(String name, Runnable runnable) {
-        JMenuItem item = new JMenuItem(name);
-
-        item.addActionListener(e -> {
-            runnable.run();
-            SwingUtilities.updateComponentTreeUI(this);
-        });
-
-        return item;
-    }
-
     public static class MinecraftVersion {
         public String version;
         public boolean stable;
