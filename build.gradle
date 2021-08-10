@@ -40,6 +40,8 @@ tasks.withType(JavaCompile).configureEach {
 }
 
 jar {
+    duplicatesStrategy = DuplicatesStrategy.INCLUDE
+
     manifest {
         attributes "Main-Class": mainClassName
     }
