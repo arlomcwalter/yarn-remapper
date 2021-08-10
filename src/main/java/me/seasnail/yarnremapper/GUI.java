@@ -7,7 +7,6 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 import javax.swing.*;
-import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
@@ -24,7 +23,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.ByteBuffer;
 import java.util.List;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 public class GUI extends JFrame {
     public JLabel inputLabel;
@@ -44,26 +43,20 @@ public class GUI extends JFrame {
 
     public JButton remapButton;
 
-    public GUI() throws URISyntaxException, IOException, InterruptedException, UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
-        try {
-            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
-        } catch (ClassNotFoundException | InstantiationException | IllegalAccessException | UnsupportedLookAndFeelException e) {
-            e.printStackTrace();
-        }
-
+    public GUI() throws URISyntaxException, IOException, InterruptedException {
         setTitle("Yarn Remapper");
-        setBackground(Color.white);
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
-
-        UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
 
         // Input
         inputLabel = new JLabel("Input");
         inputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
         inputPath = new JTextField();
-        inputPath.setDropTarget(new JarDropTarget(inputPath, (textField, file) -> textField.setText(file.getAbsolutePath())));
+        inputPath.setDropTarget(new JarDropTarget(file -> {
+            inputPath.setText(file.getAbsolutePath());
+            outputPath.setText(file.getAbsolutePath().replace(".jar", "-remapped.jar"));
+        }));
 
         inputBrowse = new JButton("Browse");
         inputBrowse.addActionListener(e -> {
@@ -97,7 +90,7 @@ public class GUI extends JFrame {
         outputLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
         outputPath = new JTextField();
-        outputPath.setDropTarget(new JarDropTarget(outputPath, (textField, file) -> textField.setText(file.getAbsolutePath())));
+        outputPath.setDropTarget(new JarDropTarget(file -> outputPath.setText(file.getAbsolutePath())));
 
         outputBrowse = new JButton("Browse");
         outputBrowse.addActionListener(e -> {
@@ -125,14 +118,14 @@ public class GUI extends JFrame {
         minecraftVersionLabel = new JLabel("Minecraft Version");
         minecraftVersionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        minecraftVersionSelector = new JComboBox();
+        minecraftVersionSelector = new JComboBox<>();
 
         minecraftVersionSnapshots = new JCheckBox("Snapshots");
 
-        yarnVersionLabel = new JLabel("Yarn Version");
+        yarnVersionLabel = new JLabel("Yarn Build");
         yarnVersionLabel.setHorizontalAlignment(SwingConstants.RIGHT);
 
-        yarnVersionSelector = new JComboBox();
+        yarnVersionSelector = new JComboBox<>();
 
         MinecraftVersion.populate(minecraftVersionSelector, minecraftVersionSnapshots.isSelected(), yarnVersionSelector);
 
@@ -266,6 +259,7 @@ public class GUI extends JFrame {
                 if (version.stable || snapshots) mcSelector.addItem(version.version);
             }
 
+            yarnSelector.removeAllItems();
             YarnVersion.populate(yarnSelector, (String) mcSelector.getSelectedItem());
         }
     }
@@ -287,18 +281,14 @@ public class GUI extends JFrame {
                 }.getType()
             );
 
-            for (YarnVersion version : versions) {
-                dropDown.addItem("Build " + version.build);
-            }
+            for (YarnVersion version : versions) dropDown.addItem("Build " + version.build);
         }
     }
 
     public static class JarDropTarget extends DropTarget {
-        private final JTextField compnent;
-        private final BiConsumer<JTextField, File> action;
+        private final Consumer<File> action;
 
-        public JarDropTarget(JTextField compnent, BiConsumer<JTextField, File> action) {
-            this.compnent = compnent;
+        public JarDropTarget(Consumer<File> action) {
             this.action = action;
         }
 
@@ -319,7 +309,9 @@ public class GUI extends JFrame {
 
             File file = files.get(0);
 
-            if (file.getName().endsWith(".jar")) action.accept(compnent, file);
+            if (file.getName().endsWith(".jar")) {
+                action.accept(file);
+            }
             else {
                 TinyFileDialogs.tinyfd_messageBox("Error selecting input JAR!", "Please drop a valid JAR file.", "ok", "error", false);
             }
