@@ -8,7 +8,7 @@ A simple tool to remap compiled Fabric mods containing intermediary yarn mapping
 How to use:
 ```
 1. Download from releases
-2. Open jar (needs java 16)
+2. Open jar (needs java 11+)
 3. Input the jar to be remapped
 4. Input the output directory
 5. Select the Minecraft and Yarn mapping versions
