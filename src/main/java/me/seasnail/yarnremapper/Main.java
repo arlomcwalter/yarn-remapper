@@ -1,5 +1,6 @@
 package me.seasnail.yarnremapper;
 
+import com.formdev.flatlaf.FlatDarculaLaf;
 import net.fabricmc.tinyremapper.NonClassCopyMode;
 import net.fabricmc.tinyremapper.OutputConsumerPath;
 import net.fabricmc.tinyremapper.TinyRemapper;
@@ -7,7 +8,6 @@ import net.fabricmc.tinyremapper.TinyUtils;
 import org.apache.commons.io.FileUtils;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
-import javax.swing.*;
 import java.io.File;
 import java.io.IOException;
 import java.net.URISyntaxException;
@@ -21,7 +21,8 @@ public class Main {
     public static final File CACHE_DIR = new File(System.getProperty("user.home"), ".yarn-remapper");
     public static GUI gui;
 
-    public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException, UnsupportedLookAndFeelException, ClassNotFoundException, InstantiationException, IllegalAccessException {
+    public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException {
+        FlatDarculaLaf.setup();
         gui = new GUI();
     }
 
