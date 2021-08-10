@@ -2,7 +2,7 @@
 A simple tool to remap compiled Fabric mods containing intermediary yarn mapping names.
 
 <p align="center">
-    <img width="700" alt="le imag" src="https://user-images.githubusercontent.com/17166139/128698576-7613d048-9d3b-472a-8b19-429000b2a607.png">
+    <img width="700" alt="le imag" src="https://user-images.githubusercontent.com/17166139/128862524-c33bec27-b5cc-4afe-9b53-9be38c7a9611.png">
 </p>
 
 How to use:
