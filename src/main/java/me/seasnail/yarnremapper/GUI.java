@@ -7,6 +7,7 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 
 import javax.swing.*;
+import java.awt.*;
 import java.awt.datatransfer.DataFlavor;
 import java.awt.datatransfer.UnsupportedFlavorException;
 import java.awt.dnd.DnDConstants;
@@ -47,6 +48,14 @@ public class GUI extends JFrame {
         setTitle("Yarn Remapper");
         setDefaultCloseOperation(WindowConstants.EXIT_ON_CLOSE);
         setResizable(false);
+
+        Image image = Toolkit.getDefaultToolkit().getImage(Main.class.getClassLoader().getResource("logo.png"));
+
+        // MacOs
+        Taskbar.getTaskbar().setIconImage(image);
+
+        // Windows
+        setIconImage(image);
 
         // Input
         inputLabel = new JLabel("Input");

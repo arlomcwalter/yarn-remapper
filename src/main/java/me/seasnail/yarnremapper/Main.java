@@ -22,6 +22,7 @@ public class Main {
     public static GUI gui;
 
     public static void main(String[] args) throws URISyntaxException, IOException, InterruptedException {
+        System.setProperty("apple.awt.application.name", "Yarn Remapper");
         FlatDarculaLaf.setup();
         gui = new GUI();
     }
