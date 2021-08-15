@@ -1,4 +1,4 @@
-# Yarn Remapper
+# Yarn Remapper ![](https://www.codefactor.io/repository/github/seasnail8169/yarn-remapper/badge)
 A simple tool to remap compiled Fabric mods containing intermediary yarn mapping names.
 
 <p align="center">
